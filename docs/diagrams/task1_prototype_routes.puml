@@ -1,0 +1,69 @@
+@startuml task1_prototype_routes
+title Завдання 1. Щоденні маршрути доставки — Prototype
+skinparam classAttributeIconSize 0
+skinparam defaultFontName DejaVu Sans
+
+interface RoutePrototype <<Prototype>> {
+  + copy() : DeliveryRoute
+}
+
+class DeliveryRoute <<ConcretePrototype>> {
+  - name : String {readOnly}
+  - date : String
+  - courier : String
+  - stops : List<Stop>
+  - segmentTariffs : Map<String, Double>
+  - weightLimit : WeightLimit
+  - warehouseContacts : List<String>
+  + DeliveryRoute(name : String, points : List<String>)
+  - DeliveryRoute(other : DeliveryRoute)
+  + copy() : DeliveryRoute
+  + setDate(date : String) : void
+  + setCourier(courier : String) : void
+  + addStop(index : int, stop : Stop) : void
+  + getStops() : List<Stop>
+  + getWeightLimit() : WeightLimit
+  + describe() : List<String>
+}
+
+class Stop {
+  - place : String
+  - arrivalTime : String
+  + Stop(place : String, arrivalTime : String)
+  + Stop(other : Stop)
+  + setArrivalTime(t : String) : void
+}
+
+class WeightLimit {
+  - maxTotalKg : int
+  - maxParcelKg : int
+  + WeightLimit(maxTotalKg : int, maxParcelKg : int)
+  + WeightLimit(other : WeightLimit)
+  + setMaxTotalKg(kg : int) : void
+}
+
+class RouteRegistry <<Client / Prototype Registry>> {
+  - etalons : Map<String, DeliveryRoute>
+  + register(key : String, etalon : DeliveryRoute) : void
+  + createDaily(key : String, date : String, courier : String) : DeliveryRoute
+  + etalonSnapshot(key : String) : DeliveryRoute
+}
+
+class Main <<Runner>> {
+  ~ {static} task1DailyRoutesPrototype() : void
+}
+
+RoutePrototype <|.. DeliveryRoute
+DeliveryRoute "1" *-- "1..*" Stop : stops
+DeliveryRoute "1" *-- "1" WeightLimit : weightLimit
+RouteRegistry "1" o-- "0..*" DeliveryRoute : etalons
+Main ..> RouteRegistry : <<use>>
+Main ..> DeliveryRoute : <<create>>
+
+note right of DeliveryRoute
+  copy() — глибока копія:
+  новий список Stop (кожна Stop копіюється),
+  нова Map тарифів, новий WeightLimit.
+  Дорога побудова — лише в публічному конструкторі.
+end note
+@enduml

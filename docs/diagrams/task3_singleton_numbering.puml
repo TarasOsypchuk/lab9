@@ -1,0 +1,61 @@
+@startuml task3_singleton_numbering
+title Завдання 3. Нумерація накладних — Singleton
+skinparam classAttributeIconSize 0
+skinparam defaultFontName DejaVu Sans
+
+class WaybillNumberingService <<Singleton>> {
+  - {static} created : boolean
+  - serviceId : String {readOnly}
+  - counter : AtomicLong {readOnly}
+  - WaybillNumberingService()
+  + {static} getInstance() : WaybillNumberingService
+  + nextNumber() : String
+  + getServiceId() : String
+}
+
+class "WaybillNumberingService.Holder" as Holder <<static nested>> {
+  - {static} INSTANCE : WaybillNumberingService {readOnly}
+}
+
+class Shipment <<Domain entity>> {
+  - waybillNumber : String
+  - sender : String {readOnly}
+  - recipient : String {readOnly}
+  - weightKg : double {readOnly}
+  - status : Status
+  + Shipment(sender : String, recipient : String, weightKg : double)
+  + assignWaybillNumber(number : String) : void
+  + setStatus(status : Status) : void
+  + getWaybillNumber() : String
+}
+
+class RegistrationPoint <<Client>> {
+  - name : String
+  - numbering : WaybillNumberingService
+  + RegistrationPoint(name : String)
+  + registerShipments(shipments : Shipment...) : List<String>
+  + getNumbering() : WaybillNumberingService
+}
+
+class Main <<Runner>> {
+  ~ {static} task3WaybillNumberingSingleton() : void
+}
+
+WaybillNumberingService +-- Holder
+Holder "1" --> "1" WaybillNumberingService : INSTANCE
+RegistrationPoint "3" --> "1" WaybillNumberingService : numbering
+Main ..> RegistrationPoint : <<create>>
+Main ..> WaybillNumberingService : <<use>>
+RegistrationPoint ..> Shipment : реєструє,\nприсвоює номер
+
+note right of WaybillNumberingService
+  private-конструктор + перевірка created
+  (захист від рефлексії).
+  Holder-ідіома: лінива, потокобезпечна ініціалізація.
+  AtomicLong: номери не повторюються.
+end note
+note bottom of RegistrationPoint
+  Відділення №1, Відділення №2, Онлайн-кабінет —
+  три екземпляри, всі отримують ту саму службу.
+end note
+@enduml

@@ -1,0 +1,77 @@
+@startuml task2_object_pool_vans
+title Завдання 2. Службові фургони — Object Pool
+skinparam classAttributeIconSize 0
+skinparam defaultFontName DejaVu Sans
+
+class VanPool <<Object Pool>> {
+  - maxSize : int {readOnly}
+  - available : Deque<Van>
+  - inUse : List<Van>
+  - all : List<Van>
+  - waiting : Deque<Courier>
+  + VanPool(maxSize : int)
+  + acquire(courier : Courier) : Optional<Van>
+  + release(courier : Courier) : void
+  - handOver(van : Van, courier : Courier) : void
+  + printStatistics() : void
+}
+
+class Van <<Reusable>> {
+  - id : String {readOnly}
+  - courier : String
+  - waybillSheet : String
+  - cargo : List<Shipment>
+  - tripCount : int
+  ~ Van(id : String)
+  ~ assignTo(courier : String, parcels : List<Shipment>) : void
+  ~ reset() : void
+  + getId() : String
+  + getTripCount() : int
+  + state() : String
+}
+
+class Shipment <<Domain entity>> {
+  - waybillNumber : String
+  - sender : String {readOnly}
+  - recipient : String {readOnly}
+  - weightKg : double {readOnly}
+  - status : Status
+  + Shipment(sender : String, recipient : String, weightKg : double)
+  + assignWaybillNumber(number : String) : void
+  + setStatus(status : Status) : void
+  + getWaybillNumber() : String
+}
+
+class Courier <<Client>> {
+  - name : String
+  - parcels : List<Shipment>
+  - van : Van
+  + getName() : String
+  + getParcels() : List<Shipment>
+  + getVan() : Van
+  ~ setVan(van : Van) : void
+}
+
+class Main <<Runner>> {
+  ~ {static} task2VanPool() : void
+}
+
+VanPool "1" o-- "0..3" Van : керує
+VanPool "1" o-- "0..*" Courier : waiting (FIFO)
+Courier "0..1" --> "0..1" Van : van
+Main ..> VanPool : <<use>>
+Main ..> Courier : <<create>>
+Van "1" o-- "0..*" Shipment : cargo
+Courier "1" o-- "1..*" Shipment : parcels
+
+note bottom of VanPool
+  Ліміт maxSize = 3: нові Van створюються лише поки all.size() < maxSize.
+  release(): reset() → віддати першому в черзі або в available.
+  Стратегія вичерпання: FIFO-черга кур'єрів.
+end note
+note right of Van
+  Конструктор package-private: створює лише пул.
+  Дорога повна підготовка — один раз у конструкторі.
+  reset(): вантаж, кур'єр, шляховий лист стираються.
+end note
+@enduml
